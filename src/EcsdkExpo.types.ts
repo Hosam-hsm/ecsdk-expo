@@ -1,19 +1,28 @@
-import type { StyleProp, ViewStyle } from 'react-native';
-
-export type OnLoadEventPayload = {
-  url: string;
-};
-
+// Events type for the module (currently empty, but can be extended for event listeners)
 export type EcsdkExpoModuleEvents = {
-  onChange: (params: ChangeEventPayload) => void;
+	// Add event types here if the module emits events
+	// Example:
+	// onChange: (params: { value: string }) => void;
 };
 
-export type ChangeEventPayload = {
-  value: string;
+// ============================================================================
+// Common Types (Both Platforms)
+// ============================================================================
+
+export type UserProfile = {
+	firstName?: string;
+	lastName?: string;
+	email?: string;
+	phone?: string;
+	deviceId?: string; // Android only
 };
 
-export type EcsdkExpoViewProps = {
-  url: string;
-  onLoad: (event: { nativeEvent: OnLoadEventPayload }) => void;
-  style?: StyleProp<ViewStyle>;
+export type Organization = {
+	organizationId: number;
+	name: string;
+	description: string;
+};
+
+export type ClientTokenResponse = {
+	token: string;
 };

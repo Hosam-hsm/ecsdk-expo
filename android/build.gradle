@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 
 group = 'expo.modules.ecsdkexpo'
-version = '0.1.0'
+version = '0.7.6'
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
 apply from: expoModulesCorePlugin
@@ -35,9 +35,23 @@ android {
   namespace "expo.modules.ecsdkexpo"
   defaultConfig {
     versionCode 1
-    versionName "0.1.0"
+    versionName "0.7.6"
   }
   lintOptions {
     abortOnError false
   }
+}
+
+dependencies {
+  // ECSDK library
+  implementation 'com.elerts.libraries:elertsui:2.2.6'
+  
+  // Firebase BOM for version management
+  implementation platform('com.google.firebase:firebase-bom:32.7.0')
+  
+  // Firebase Messaging (version managed by BOM)
+  implementation 'com.google.firebase:firebase-messaging'
+  
+  // Gson for JSON parsing
+  implementation 'com.google.code.gson:gson:2.10.1'
 }
