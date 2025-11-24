@@ -63,8 +63,7 @@ export default {
           process.env.GOOGLE_SERVICES_FILE || "./google-services.json",
 
         // Optional
-        productKey: process.env.ECSDK_PRODUCT_KEY, // iOS only
-        productName: "PROVIDED BY ELERTS", // Default
+        productKey: process.env.ECSDK_PRODUCT_KEY || "PROVIDED BY ELERTS", // Used for both iOS and Android
         appName: "Your App Name",
         shortDisplayName: "Short Name",
 
@@ -95,7 +94,7 @@ export GPR_USER="your-github-username"
 export GPR_API_KEY="your-github-personal-access-token"
 
 # Optional
-export ECSDK_PRODUCT_KEY="your-product-key" # iOS only
+export ECSDK_PRODUCT_KEY="your-product-key" # Used for both iOS and Android
 ```
 
 **Note:** The plugin automatically reads `GPR_USER` and `GPR_API_KEY` from environment variables and uses them to:
