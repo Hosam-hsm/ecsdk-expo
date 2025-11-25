@@ -113,8 +113,13 @@ You do **not** need to include `githubUsername` and `githubToken` in the plugin 
    - Configures Info.plist with required permissions
    - Sets up SPM packages with GitHub authentication (reads from `GPR_USER` and `GPR_API_KEY` env vars)
    - Generates `.netrc` file in your home directory for GitHub Packages authentication
-   - Initializes the SDK in AppDelegate
-   - Configures background modes
+   - Adds `use_modular_headers!` to Podfile for Firebase compatibility
+   - Initializes the SDK in AppDelegate (`willFinishLaunchingWithOptions` or `didFinishLaunchingWithOptions`)
+   - Configures background modes (fetch, remote-notification)
+   - Adds background fetch handler (`performFetchWithCompletionHandler`)
+   - Implements remote notification handlers (device token registration, notification receipt, error handling)
+   - Implements `EKNotificationManagerDelegate` protocol with notification tap handling
+   - Sets up `EKBackgroundFetchManager` for store-and-forward functionality
 
 #### Android
 
@@ -124,8 +129,11 @@ You do **not** need to include `githubUsername` and `githubToken` in the plugin 
    - Sets up Gradle dependencies
    - Configures GitHub Packages repository (reads from `GPR_USER` and `GPR_API_KEY` env vars)
    - Adds GitHub credentials to `gradle.properties` automatically
-   - Initializes the SDK in MainApplication
-   - Sets up Firebase/FCM
+   - Initializes the SDK in MainApplication (`ECUISDK` instance)
+   - Adds `attachBaseContext` override for proper context handling
+   - Adds `onConfigurationChanged` override for configuration changes
+   - Sets up Firebase/FCM (Google Services plugin and `google-services.json`)
+   - Configures core library desugaring for Java 17 compatibility
 
 ### EAS Build Configuration
 
@@ -686,15 +694,26 @@ if (Platform.OS === "android") {
 - **APNS**: Push notifications use Apple Push Notification Service (APNS)
 - **Permissions**: Camera, microphone, location, and photo library permissions are automatically configured
 - **Background Modes**: Background fetch and remote notifications are enabled
-- **SDK Initialization**: Automatically initialized in `AppDelegate` via config plugin
+- **SDK Initialization**: Automatically initialized in `AppDelegate` via config plugin:
+  - Initializes `ELERTSKit` in `willFinishLaunchingWithOptions` (or `didFinishLaunchingWithOptions` as fallback)
+  - Sets up `EKBackgroundFetchManager` for store-and-forward functionality
+  - Configures `EKNotificationManager.default.delegate` for remote notifications
+  - Implements `EKNotificationManagerDelegate` protocol with notification tap handling
+  - Adds remote notification handlers (device token registration, notification receipt, error handling)
+  - Adds background fetch handler for poor connectivity scenarios
+- **Modular Headers**: Automatically adds `use_modular_headers!` to Podfile for Firebase compatibility
 
 ### Android
 
 - **FCM**: Push notifications use Firebase Cloud Messaging (FCM)
 - **Permissions**: Android 13+ requires `POST_NOTIFICATIONS` permission (request manually)
 - **Google Services**: Requires `google-services.json` file for Firebase/FCM
-- **SDK Initialization**: Automatically initialized in `MainApplication` via config plugin
+- **SDK Initialization**: Automatically initialized in `MainApplication` via config plugin:
+  - Initializes `ECUISDK` instance in `onCreate()`
+  - Adds `attachBaseContext` override for proper context wrapping
+  - Adds `onConfigurationChanged` override for configuration change handling
 - **Firebase Messaging Service**: `ECSDKFirebaseMessagingService` is automatically registered
+- **Core Library Desugaring**: Automatically configured for Java 17 compatibility
 
 ## Error Handling
 

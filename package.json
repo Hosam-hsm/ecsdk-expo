@@ -1,6 +1,6 @@
 {
   "name": "ecsdk-expo",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Expo module for ECSDK-iOS and ECSDK-Android (ELERTS See Say Now SDK)",
   "main": "build/index.js",
   "types": "build/index.d.ts",

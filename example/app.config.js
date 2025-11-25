@@ -96,27 +96,6 @@ Example configuration:
   }
 };
 
-// Validate configuration when config is evaluated
-// This runs during 'expo prebuild' and 'expo start'
-if (process.env.NODE_ENV !== "test") {
-  try {
-    validateECSDKConfig();
-  } catch (error) {
-    // Only throw if we're in a prebuild context
-    // Allow config to load during development for better error messages
-    if (
-      process.argv.includes("prebuild") ||
-      process.env.EXPO_PREBUILD === "1"
-    ) {
-      throw error;
-    }
-    console.error(error.message);
-    console.error(
-      "\n⚠️  Prebuild will fail if these environment variables are not set."
-    );
-  }
-}
-
 export default ({ config }) => {
   const finalConfig = {
     ...config,

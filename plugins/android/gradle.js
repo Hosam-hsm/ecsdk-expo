@@ -11,9 +11,8 @@ function withECSDKGradleProperties(config, { githubUsername, githubToken }) {
 	return withGradleProperties(config, (config) => {
 		// Add GitHub credentials to gradle.properties if provided
 		// These are used to access the ECSDK-Android library from GitHub Packages
-		// Priority: 1. Plugin params, 2. Environment variables
-		const gprUser = githubUsername || process.env.GPR_USER;
-		const gprKey = githubToken || process.env.GPR_API_KEY;
+		const gprUser = githubUsername;
+		const gprKey = githubToken;
 
 		if (gprUser) {
 			// Remove existing GPR_USER if present

@@ -64,9 +64,10 @@ const {
  *         "ecsdkApiKey": process.env.ECSDK_API_KEY,
  *         "googleMapsApiKey": process.env.GOOGLE_MAPS_API_KEY,  // Required for Android map functionality
  *         "googleServicesFile": "./google-services.json",       // Optional, for Android FCM push notifications
- *         "productKey": "PROVIDED BY ELERTS",                   // Optional, default: "PROVIDED BY ELERTS" (used for both iOS and Android)
+ *         "productName": "PROVIDED BY ELERTS",                  // Optional, default: "PROVIDED BY ELERTS"
  *         "appName": "Your App Name",                           // Optional
  *         "shortDisplayName": "Short Name",                     // Optional
+ *         "productKey": "YourProductKey",                       // Optional, for iOS
  *         // GitHub credentials: Use environment variables GPR_USER and GPR_API_KEY
  *         // Required for both iOS (SPM) and Android (Maven) to access private packages
  *         // Or pass them here (not recommended):
@@ -77,13 +78,44 @@ const {
  *   ]
  * }
  *
- * EAS Build Configuration:
- * For EAS builds, you need to configure GitHub authentication in eas.json:
+ * Environment Variables:
+ * Values must be passed explicitly via plugin props. The app.config.js should read from
+ * environment variables and pass them to the plugin. This allows you to use EAS Secrets
+ * or local .env files by configuring them in app.config.js.
  *
+ * The following environment variables should be set and passed to the plugin:
+ * - ECSDK_API_KEY - ECSDK API Key from ELERTS (required)
+ * - GOOGLE_MAPS_API_KEY - Google Maps API Key (required for Android)
+ * - GOOGLE_SERVICES_FILE - Path to google-services.json (required for Firebase/FCM)
+ * - GPR_USER - GitHub username for accessing private ECSDK packages (required)
+ * - GPR_API_KEY - GitHub personal access token (required)
+ * - ECSDK_PRODUCT_KEY - Product key for iOS (optional)
+ *
+ * Validation:
+ * Validation only occurs during the prebuild phase, not during config evaluation.
+ * This ensures that environment variables from EAS dashboard are available when validation runs.
+ * During config evaluation (e.g., 'npx expo config'), validation is skipped to allow the
+ * config to load even if environment variables aren't available yet.
+ *
+ * EAS Build Configuration:
+ * For EAS builds, configure environment variables in the EAS dashboard or eas.json:
+ *
+ * Option 1: EAS Secrets (recommended):
+ * 1. Set secrets: eas secret:create --scope project --name ECSDK_API_KEY --value your-key
+ * 2. Set secrets: eas secret:create --scope project --name GOOGLE_MAPS_API_KEY --value your-key
+ * 3. Set secrets: eas secret:create --scope project --name GOOGLE_SERVICES_FILE --value ./google-services.json
+ * 4. Set secrets: eas secret:create --scope project --name GPR_USER --value your-username
+ * 5. Set secrets: eas secret:create --scope project --name GPR_API_KEY --value your-token
+ * 6. Secrets are automatically available during prebuild phase
+ *
+ * Option 2: eas.json env section:
  * {
  *   "build": {
  *     "production": {
  *       "env": {
+ *         "ECSDK_API_KEY": "your-key",
+ *         "GOOGLE_MAPS_API_KEY": "your-key",
+ *         "GOOGLE_SERVICES_FILE": "./google-services.json",
  *         "GPR_USER": "your-github-username",
  *         "GPR_API_KEY": "your-github-token"
  *       },
@@ -94,44 +126,53 @@ const {
  *   }
  * }
  *
- * Or use EAS Secrets (recommended):
- * 1. Set secrets: eas secret:create --scope project --name GPR_USER --value your-username
- * 2. Set secrets: eas secret:create --scope project --name GPR_API_KEY --value your-token
- * 3. Reference in eas.json env section (they're automatically available)
- * 4. Add prebuildCommand for iOS as shown above
- *
  * For Android: The gradle.properties approach works automatically in EAS builds
  * since the credentials are written to the project file during prebuild.
  *
  * @param {import('@expo/config-plugins').ExportedConfig} config
  * @param {Object} props - Plugin configuration
- * @param {string} props.ecsdkApiKey - ECSDK API Key from ELERTS (required)
- * @param {string} props.googleMapsApiKey - Google Maps API Key (required for Android)
- * @param {string} [props.googleServicesFile] - Path to google-services.json (optional, for Android FCM)
- * @param {string} [props.productKey] - Product key (default: "PROVIDED BY ELERTS", used for both iOS and Android)
+ * @param {string} [props.ecsdkApiKey] - ECSDK API Key from ELERTS (required, can also use ECSDK_API_KEY env var)
+ * @param {string} [props.googleMapsApiKey] - Google Maps API Key (required for Android, can also use GOOGLE_MAPS_API_KEY env var)
+ * @param {string} [props.googleServicesFile] - Path to google-services.json (required, can also use GOOGLE_SERVICES_FILE env var)
+ * @param {string} [props.productName] - Product name (default: "PROVIDED BY ELERTS")
  * @param {string} [props.appName] - App name (optional)
  * @param {string} [props.shortDisplayName] - Short display name (optional)
- * @param {string} [props.githubUsername] - GitHub username for ECSDK package access (optional, use env vars instead)
- * @param {string} [props.githubToken] - GitHub personal access token (optional, use env vars instead)
+ * @param {string} [props.productKey] - Product key for iOS (optional, can also use ECSDK_PRODUCT_KEY env var)
+ * @param {string} [props.githubUsername] - GitHub username for ECSDK package access (optional, can also use GPR_USER env var)
+ * @param {string} [props.githubToken] - GitHub personal access token (optional, can also use GPR_API_KEY env var)
  */
 module.exports = function withECSDK(config, props = {}) {
   const {
     ecsdkApiKey,
     googleMapsApiKey,
     googleServicesFile,
-    productKey = "PROVIDED BY ELERTS",
+    productName = "PROVIDED BY ELERTS",
     appName,
     shortDisplayName,
+    productKey,
     githubUsername,
     githubToken,
   } = props;
 
   // ============================================================================
-  // VALIDATION - Fail fast during prebuild if required configuration is missing
+  // VALIDATION - Defer validation until prebuild phase when env vars are available
   // ============================================================================
 
+  // Detect if we're in prebuild phase (when env vars are actually available)
+  // During prebuild, EXPO_PREBUILD is set or 'prebuild' is in argv
+  // EAS_BUILD_WORKINGDIR is set by EAS during the build process when prebuild runs
+  const isPrebuildPhase =
+    process.env.EXPO_PREBUILD === "1" ||
+    process.argv.includes("prebuild") ||
+    process.env.EAS_BUILD_WORKINGDIR; // EAS sets this during prebuild
+
+  // Only validate during prebuild phase when environment variables are guaranteed to be available
+  // Skip validation during config evaluation (npx expo config) - env vars from EAS dashboard
+  // are only available during the actual prebuild phase, not during config evaluation
+  const shouldValidate = isPrebuildPhase;
+
   // Validate required ECSDK API Key
-  if (!ecsdkApiKey) {
+  if (shouldValidate && !ecsdkApiKey) {
     throw new Error(
       `ECSDK Config Plugin Error: 'ecsdkApiKey' is required but not provided.
 
@@ -155,7 +196,7 @@ Get your API key from ELERTS.`
   }
 
   // Validate required Google Maps API Key for Android
-  if (!googleMapsApiKey) {
+  if (shouldValidate && !googleMapsApiKey) {
     throw new Error(
       `ECSDK Config Plugin Error: 'googleMapsApiKey' is required for Android but not provided.
 
@@ -181,11 +222,7 @@ Get your API key from: https://console.cloud.google.com/`
   }
 
   // Validate GitHub credentials (required for accessing private packages)
-  // Check both plugin params and environment variables
-  const gprUser = githubUsername || process.env.GPR_USER;
-  const gprKey = githubToken || process.env.GPR_API_KEY;
-
-  if (!gprUser || !gprKey) {
+  if (shouldValidate && (!githubUsername || !githubToken)) {
     throw new Error(
       `ECSDK Config Plugin Error: GitHub credentials are required to access private ECSDK packages.
 
@@ -223,7 +260,7 @@ https://github.com/settings/tokens`
   // Validate google-services.json file
   // Since the plugin registers ECSDKFirebaseMessagingService in AndroidManifest,
   // google-services.json is required for Firebase/FCM to work properly
-  if (!googleServicesFile) {
+  if (shouldValidate && !googleServicesFile) {
     throw new Error(
       `ECSDK Config Plugin Error: 'googleServicesFile' is required.
 
@@ -252,8 +289,8 @@ https://console.firebase.google.com/ → Project Settings → Your Android App �
     );
   }
 
-  // Validate path format
-  if (typeof googleServicesFile !== "string") {
+  // Validate path format (only if googleServicesFile is provided)
+  if (googleServicesFile && typeof googleServicesFile !== "string") {
     throw new Error(
       `ECSDK Config Plugin Error: 'googleServicesFile' must be a string path, got: ${typeof googleServicesFile}
 
@@ -294,13 +331,12 @@ Please provide a valid file path, e.g.:
 
   // Apply strings.xml configuration
   config = withECSDKStrings(config, {
-    productKey,
+    productName,
     appName,
     shortDisplayName,
   });
 
   // Apply gradle.properties configuration
-  // This will use environment variables (GPR_USER, GPR_API_KEY) if plugin params not provided
   config = withECSDKGradleProperties(config, {
     githubUsername,
     githubToken,

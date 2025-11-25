@@ -12,12 +12,11 @@ const withAppDelegateInitialization = (config, options = {}) => {
 	return withAppDelegate(config, (config) => {
 		const appDelegate = config.modResults;
 
-		// Get API key from plugin options, config.extra, or environment variable
-		const apiKey = options.apiKey || config.extra?.ecsdkApiKey || process.env.ECSDK_API_KEY;
+		// Get API key from plugin options or config.extra
+		const apiKey = options.apiKey || config.extra?.ecsdkApiKey;
 
-		// Get product key from plugin options, config.extra, or environment variable
-		const productKey =
-			options.productKey || config.extra?.ecsdkProductKey || process.env.ECSDK_PRODUCT_KEY;
+		// Get product key from plugin options or config.extra
+		const productKey = options.productKey || config.extra?.ecsdkProductKey;
 
 		if (!apiKey) {
 			throw new Error(
@@ -25,8 +24,7 @@ const withAppDelegateInitialization = (config, options = {}) => {
 
 The API key should be provided via:
 1. Plugin options: { apiKey: "your-key" }
-2. Environment variable: ECSDK_API_KEY
-3. Config extra field: config.extra.ecsdkApiKey
+2. Config extra field: config.extra.ecsdkApiKey
 
 This error indicates the main plugin validation may have been bypassed.
 Please ensure 'ecsdkApiKey' is provided in the plugin configuration.`,
